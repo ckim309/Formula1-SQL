@@ -1,16 +1,21 @@
 -- drivers that did not finish a race in 2021
 SELECT rac.raceId, dri.surname, rac.name, sta.status
-FROM F1..results$ res LEFT JOIN F1..races$ rac ON res.raceId = rac.raceId
-LEFT JOIN F1..drivers$ dri ON dri.driverId = res.driverId
-LEFT JOIN F1..status$ sta ON sta.statusId = res.statusId
+FROM F1..results$ res LEFT JOIN F1..races$ rac 
+		ON res.raceId = rac.raceId
+	LEFT JOIN F1..drivers$ dri 
+		ON dri.driverId = res.driverId
+	LEFT JOIN F1..status$ sta 
+		ON sta.statusId = res.statusId
 WHERE year = 2021 and position IS NULL
 ORDER BY rac.raceId;
 
 -- finding the fastest lap time per track from 2011 to 2021
 SELECT rac.year, rac.name, 
 	CAST(MIN(fastestLapTime) AS time(2)) AS FastestLapTime
-FROM F1..results$ res LEFT JOIN F1..races$ rac ON res.raceId = rac.raceId
-LEFT JOIN F1..drivers$ dri ON dri.driverId = res.driverId
+FROM F1..results$ res LEFT JOIN F1..races$ rac 
+		ON res.raceId = rac.raceId
+	LEFT JOIN F1..drivers$ dri 
+		ON dri.driverId = res.driverId
 WHERE rac.year BETWEEN 2011 AND 2021
 GROUP BY rac.year, rac.name
 ORDER BY rac.year, rac.name;
@@ -18,8 +23,10 @@ ORDER BY rac.year, rac.name;
 -- number of wins per driver throughout F1 history
 SELECT dri.forename + ' ' + dri.surname as DriverName, 
 	SUM(res.position) AS TotalWins
-FROM F1..results$ res LEFT JOIN F1..races$ rac ON res.raceId = rac.raceId
-LEFT JOIN F1..drivers$ dri ON dri.driverId = res.driverId
+FROM F1..results$ res LEFT JOIN F1..races$ rac 
+		ON res.raceId = rac.raceId
+	LEFT JOIN F1..drivers$ dri 
+		ON dri.driverId = res.driverId
 WHERE res.position = 1
 GROUP BY dri.forename + ' ' + dri.surname
 ORDER BY sum(res.position) DESC;
@@ -41,12 +48,13 @@ FROM F1..results$ res LEFT JOIN F1..constructors$ con
 		ON res.constructorId = con.constructorId
 	LEFT JOIN F1..drivers$ dri 
 		ON res.driverId = dri.driverId
-WHERE dri.code = 'HAM' or dri.code = 'BOT' AND con.name like 'Merc%'
+WHERE dri.code = 'HAM' or dri.code = 'BOT' 
+	AND con.name like 'Merc%'
 GROUP BY dri.code, res.driverId; -- HAM AND BOT were at Mercedes together from raceId 969
 
 -- temporary table for BOT and HAM when racing for Mercedes
 SELECT race.year, race.name, dri.code, res.grid, res.positionOrder AS DriverStanding, res.points, 
-cast(res.fastestLapTime as time (2)) as FastestLapTime
+cast(res.fastestLapTime as time (2)) AS FastestLapTime
 INTO BotHam
 FROM F1..constructors$ con JOIN F1..results$ res 
 		ON (con.constructorId = res.constructorId)
