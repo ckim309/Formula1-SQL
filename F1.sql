@@ -109,7 +109,6 @@ GROUP BY rac.date, rac.name, dri.code, res.points, res.positionText;
 
 -- HAM/VER: 2021 season race by race points comparison
 SELECT date, name, code, DriverStanding, points, 
-	sum(points) over(partition by code 
-						order by date) as CumalitivePts
+	sum(points) over(partition by code order by date) as CumalitivePts
 FROM HamVer 
 order by date, code;
