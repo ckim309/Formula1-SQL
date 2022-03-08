@@ -1,4 +1,4 @@
--- drivers that did not finish a race in 2021 --
+-- drivers that did not finish a race in 2021
 SELECT rac.raceId, dri.surname, rac.name, sta.status
 FROM F1..results$ res LEFT JOIN F1..races$ rac ON res.raceId = rac.raceId
 LEFT JOIN F1..drivers$ dri ON dri.driverId = res.driverId
@@ -15,7 +15,7 @@ WHERE rac.year BETWEEN 2011 AND 2021
 GROUP BY rac.year, rac.name
 ORDER BY rac.year, rac.name;
 
--- number of wins per driver throughout F1 history --
+-- number of wins per driver throughout F1 history
 SELECT dri.forename + ' ' + dri.surname as DriverName, 
 	SUM(res.position) AS TotalWins
 FROM F1..results$ res LEFT JOIN F1..races$ rac ON res.raceId = rac.raceId
@@ -26,7 +26,7 @@ ORDER BY sum(res.position) DESC;
 
 
 
--- COMPARING LEWIS HAMILTON TO VALTTERI BOTTAS WHEN THEY WERE TEAMMATES AT MERCEDES --
+-- COMPARING LEWIS HAMILTON TO VALTTERI BOTTAS WHEN THEY WERE TEAMMATES AT MERCEDES
 
 -- finding Lewis Hamilton and Valtteri Bottas
 SELECT *
@@ -58,10 +58,10 @@ WHERE res.raceId >= 969
 	AND dri.code = 'HAM' or dri.code = 'BOT' 
 	AND con.name like 'Merc%';
 
-drop table BotHam
 -- BOT/HAM: temp table
 select *
 from BotHam;
+
 -- BOT/HAM: 2017-2021 season comparison
 SELECT year, code, 
 max(DriverStanding) AS WorstRaceFinish,
@@ -72,6 +72,7 @@ round(avg(points), 2) AS AvgPointsPerRace,
 sum(points) as TotaPoints
 FROM BotHam
 GROUP BY code, year;
+
 -- BOT/HAM career: average points per race, podium (top 3) finishes, P1 (first place) finishes
 SELECT code,
 COUNT(year) as NumOfRaces,
@@ -81,18 +82,18 @@ CONCAT(CAST(ROUND(100.0 * SUM(CASE WHEN DriverStanding <= 3 THEN 1 ELSE 0 END)/C
 CONCAT(CAST(ROUND(100.0 * SUM(CASE WHEN DriverStanding = 1 THEN 1 ELSE 0 END)/COUNT(DriverStanding), 2) AS float), '%') AS 'P1%'
 FROM BotHam
 GROUP BY code;
---------------------------------
---- randon saved stuff ---
---------------------------------
 
--- finding Lewis Hamilton and Max Verstappen
+
+-- LEWIS HAMILTON VS MAX VERSTAPPEN IN 2021 --
+
+-- Lewis Hamilton and Max Verstappen driver info
 SELECT *
 FROM F1..drivers$
 WHERE forename = 'Lewis' AND surname = 'Hamilton' 
 OR forename = 'Max' AND surname = 'Verstappen';
 
--- CTE for HAM and VER for Season 2021
--- creating temp table
+-- 2021 season race by race points comparison
+-- creating temp table --
 SELECT cast(rac.date AS date) AS date, 
 	rac.name, dri.code, res.positionText AS DriverStanding, res.points
 	INTO HamVer
@@ -112,23 +113,3 @@ SELECT date, name, code, DriverStanding, points,
 						order by date) as CumalitivePts
 FROM HamVer 
 order by date, code;
-
-
--- recursive CTE
-WITH cte_HamVer (date, name, code, positionText, points) 
-AS (
-
-	SELECT date, name, code, positionText, sum(points) as TotalPoints
-	FROM HamVer
-	GROUP BY code,date, name, positionText, points
-
-	UNION ALL
-
-	SELECT cte.date, cte.name, cte.code, cte.positionText, cte.points
-	FROM cte_HamVer cte INNER JOIN HamVer HV
-		ON cte.date = HV.date
-
-)
--- comparing the total points after each race between HAM and VER
-
-
