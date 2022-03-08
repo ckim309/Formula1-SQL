@@ -6,7 +6,7 @@ FROM F1..results$ res LEFT JOIN F1..races$ rac
 		ON dri.driverId = res.driverId
 	LEFT JOIN F1..status$ sta 
 		ON sta.statusId = res.statusId
-WHERE year = 2021 and position IS NULL
+WHERE year = 2021 AND position IS NULL
 ORDER BY rac.raceId;
 
 -- finding the fastest lap time per track from 2011 to 2021
