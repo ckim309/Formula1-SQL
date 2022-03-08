@@ -1,4 +1,4 @@
-# F1-SQL
+# Formula1-SQL
 
 Analyzing F1 races though SQL
 
