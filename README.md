@@ -5,3 +5,4 @@ Analyzing F1 races though SQL
 - Lewis Hamilton vs Valtteri Bottas at Mercedes AMG
 - Lewis Hamilton vs Max Verstappen 2021
 
+Data Visualization through PowerBI
