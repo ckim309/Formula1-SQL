@@ -1,36 +1,3 @@
--- drivers that did not finish a race in 2021
-SELECT rac.raceId, dri.surname, rac.name, sta.status
-FROM F1..results$ res LEFT JOIN F1..races$ rac 
-		ON res.raceId = rac.raceId
-	LEFT JOIN F1..drivers$ dri 
-		ON dri.driverId = res.driverId
-	LEFT JOIN F1..status$ sta 
-		ON sta.statusId = res.statusId
-WHERE year = 2021 AND position IS NULL
-ORDER BY rac.raceId;
-
--- finding the fastest lap time per track from 2011 to 2021
-SELECT rac.year, rac.name, 
-	CAST(MIN(fastestLapTime) AS time(2)) AS FastestLapTime
-FROM F1..results$ res LEFT JOIN F1..races$ rac 
-		ON res.raceId = rac.raceId
-	LEFT JOIN F1..drivers$ dri 
-		ON dri.driverId = res.driverId
-WHERE rac.year BETWEEN 2011 AND 2021
-GROUP BY rac.year, rac.name
-ORDER BY rac.year, rac.name;
-
--- number of wins per driver throughout F1 history
-SELECT dri.forename + ' ' + dri.surname as DriverName, 
-	SUM(res.position) AS TotalWins
-FROM F1..results$ res LEFT JOIN F1..races$ rac 
-		ON res.raceId = rac.raceId
-	LEFT JOIN F1..drivers$ dri 
-		ON dri.driverId = res.driverId
-WHERE res.position = 1
-GROUP BY dri.forename + ' ' + dri.surname
-ORDER BY sum(res.position) DESC;
-
 
 
 -- COMPARING LEWIS HAMILTON TO VALTTERI BOTTAS WHEN THEY WERE TEAMMATES AT MERCEDES
@@ -66,7 +33,7 @@ WHERE res.raceId >= 969
 	AND dri.code = 'HAM' or dri.code = 'BOT' 
 	AND con.name like 'Merc%';
 
--- BOT/HAM: temp table
+-- BOT/HAM: full table
 select *
 from BotHam;
 
@@ -86,6 +53,7 @@ SELECT code,
 COUNT(year) as NumOfRaces,
 ROUND(AVG(points), 2) AS AvgPointsPerRace,
 SUM(CASE WHEN DriverStanding <= 3 THEN 1 ELSE 0 END) AS NumOfPodiums,
+SUM(CASE WHEN DriverStanding = 1 THEN 1 ELSE 0 END) AS NumOfFirstPlace,
 CONCAT(CAST(ROUND(100.0 * SUM(CASE WHEN DriverStanding <= 3 THEN 1 ELSE 0 END)/COUNT(DriverStanding), 2) AS float), '%') AS 'Podium%',
 CONCAT(CAST(ROUND(100.0 * SUM(CASE WHEN DriverStanding = 1 THEN 1 ELSE 0 END)/COUNT(DriverStanding), 2) AS float), '%') AS 'P1%'
 FROM BotHam
@@ -115,8 +83,24 @@ WHERE (dri.code = 'HAM' or dri.code = 'VER')
 		AND rac.year >= 2021
 GROUP BY rac.date, rac.name, dri.code, res.points, res.positionText;
 
--- HAM/VER: 2021 season race by race points comparison
+-- HAM/VER 2021: season race by race points comparison
 SELECT date, name, code, DriverStanding, points, 
 	sum(points) over(partition by code order by date) as CumalitivePts
 FROM HamVer 
 order by date, code;
+
+-- Season 2021: win percentage
+select TOP 6 dri.code,
+	SUM(CASE WHEN res.position = 1 THEN 1 ELSE 0 END) AS TotalWins,
+	(CAST(ROUND(100.0 * SUM(CASE WHEN res.position = 1 THEN 1 ELSE 0 END)/
+		COUNT(CASE WHEN res.position = 1 THEN 1 ELSE 0 END), 2) AS float)) AS WinPercentage
+FROM F1..results$ res LEFT JOIN F1..races$ rac 
+		ON res.raceId = rac.raceId
+	LEFT JOIN F1..drivers$ dri 
+		ON dri.driverId = res.driverId
+	LEFT JOIN F1..status$ sta 
+		ON sta.statusId = res.statusId
+WHERE rac.year = 2021
+GROUP BY dri.code
+HAVING sum(res.position) > 0
+ORDER BY TotalWins DESC;
