@@ -1,4 +1,7 @@
-
+-- cleaning data frame
+update F1..races$
+set name = 'Sao Paulo Grand Prix'
+where name = 'SÃ£o Paulo Grand Prix'
 
 -- COMPARING LEWIS HAMILTON TO VALTTERI BOTTAS WHEN THEY WERE TEAMMATES AT MERCEDES
 
