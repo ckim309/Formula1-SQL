@@ -39,9 +39,12 @@ WHERE forename = 'Lewis' AND surname = 'Hamilton'
 OR forename = 'Max' AND surname = 'Verstappen';
 
 -- 2021 season race by race points comparison
--- temp table --
-SELECT cast(rac.date AS date) AS date, 
-	rac.name, dri.code, res.positionText AS DriverStanding, res.points
+-- temp table: HamVer --
+SELECT
+	cast(rac.date AS date) AS date, 
+	rac.name, dri.code, 
+	res.position, 
+	res.points
 	INTO HamVer
 FROM F1..constructors$ con JOIN F1..results$ res 
 		ON (con.constructorId = res.constructorId)
@@ -51,51 +54,34 @@ FROM F1..constructors$ con JOIN F1..results$ res
 		ON (rac.raceId = res.raceId)
 WHERE (dri.code = 'HAM' or dri.code = 'VER')
 		AND rac.year >= 2021
-GROUP BY rac.date, rac.name, dri.code, res.points, res.positionText;
+GROUP BY rac.date, rac.name, dri.code, res.points, res.position;
 
--- HAM/VER 2021: season race by race points comparison
-SELECT date, name, code, DriverStanding, points, 
+-- HamVer: season race by race points comparison
+SELECT date, name, code, position, points, 
 	sum(points) over(partition by code order by date) as CumalitivePts
 FROM HamVer 
 order by date, code;
 
--- Season 2021: number of podiums and percentage of podiums
-select dri.code,
-	SUM(CASE WHEN res.position = 1 THEN 1 ELSE 0 END) AS FirstPlaceCount,
-	SUM(CASE WHEN res.position = 2 THEN 1 ELSE 0 END) AS SecondPlaceCount,
-	SUM(CASE WHEN res.position = 3 THEN 1 ELSE 0 END) AS ThirdPlaceCount,
-	SUM(CASE WHEN res.position <= 3 then 1 else 0 end) AS TotalPodiums,
-	SUM(CASE WHEN res.position <= 3 then res.points else 0 end) AS TotalPodiumPoints,
-	(CAST(ROUND(100.0 * SUM(CASE WHEN res.position <= 3 THEN 1 ELSE 0 END)/
-		COUNT(CASE WHEN res.position <= 3 THEN 1 ELSE 0 END), 2) AS float)) AS PodiumPercentage
-FROM F1..results$ res LEFT JOIN F1..races$ rac 
-		ON res.raceId = rac.raceId
-	LEFT JOIN F1..drivers$ dri 
-		ON dri.driverId = res.driverId
-	LEFT JOIN F1..status$ sta 
-		ON sta.statusId = res.statusId
-WHERE rac.year = 2021
-	AND (dri.code = 'HAM' OR dri.code = 'VER')
-GROUP BY dri.code
+-- HamVer: number of podiums and percentage of podiums
+select code,
+	SUM(CASE WHEN position = 1 THEN 1 ELSE 0 END) AS FirstPlaceCount,
+	SUM(CASE WHEN position = 2 THEN 1 ELSE 0 END) AS SecondPlaceCount,
+	SUM(CASE WHEN position = 3 THEN 1 ELSE 0 END) AS ThirdPlaceCount,
+	SUM(CASE WHEN position <= 3 then 1 else 0 end) AS TotalPodiums,
+	SUM(CASE WHEN position <= 3 then points else 0 end) AS TotalPodiumPoints,
+	(CAST(ROUND(100.0 * SUM(CASE WHEN position <= 3 THEN 1 ELSE 0 END)/
+		COUNT(CASE WHEN position <= 3 THEN 1 ELSE 0 END), 2) AS float)) AS PodiumPercentage
+FROM HamVer
+GROUP BY code
 ORDER BY FirstPlaceCount DESC, SecondPlaceCount DESC, ThirdPlaceCount DESC;
 
-select *
-FROM F1..results$ res LEFT JOIN F1..races$ rac 
-		ON res.raceId = rac.raceId
-	LEFT JOIN F1..drivers$ dri 
-		ON dri.driverId = res.driverId
-	LEFT JOIN F1..status$ sta 
-		ON sta.statusId = res.statusId
-WHERE rac.year = 2021
-AND( res.driverId = 1 or res.driverId = 830)
--- HAM/VER 2021: temp table starting positions, finishing positions, fastest lap time
+-- HAM/VER 2021: starting positions, finishing positions, fastest lap time
 select dri.code, 
 	CAST (rac.date as date) AS date, 
 	rac.name, res.grid, res.position,
 	FORMAT(res.fastestLapTime, 'mm:ss') AS FastestLapTime,  
 	fastestLapSpeed AS TopSpeed,
 	sta.status
-INTO HamVer2
 FROM F1..results$ res LEFT JOIN F1..races$ rac 
 		ON res.raceId = rac.raceId
 	LEFT JOIN F1..drivers$ dri 
@@ -103,7 +89,7 @@ FROM F1..results$ res LEFT JOIN F1..races$ rac
 	LEFT JOIN F1..status$ sta 
 		ON sta.statusId = res.statusId
 where (dri.code = 'HAM' or dri.code = 'VER')
-AND year = 2021
+	AND year = 2021
 ORDER BY rac.date, dri.code;
 
 -- HAM/VER 2021: pit stops
@@ -136,7 +122,7 @@ WHERE name = 'Hungarian Grand Prix';
 SELECT *
 FROM F1..drivers$
 WHERE forename = 'Lewis' AND surname = 'Hamilton' 
-OR forename = 'Valtteri' AND surname = 'Bottas';
+	OR forename = 'Valtteri' AND surname = 'Bottas';
 
 -- finding when HAM and BOT were at Mercedes together
 SELECT dri.code, min(res.raceId) AS FirstMercRace, 
@@ -165,22 +151,22 @@ WHERE res.raceId >= 969
 
 -- BOT/HAM: 2017-2021 season comparison
 SELECT year, code, 
-max(DriverStanding) AS WorstRaceFinish,
-min(points) AS LeastPtsScored,
-min(DriverStanding) AS BestRaceFinish,
-max(points) AS MostPtsScored,
-round(avg(points), 2) AS AvgPointsPerRace,
-sum(points) as TotaPoints
+	MAX(DriverStanding) AS WorstRaceFinish,
+	MIN(points) AS LeastPtsScored,
+	MIN(DriverStanding) AS BestRaceFinish,
+	MAX(points) AS MostPtsScored,
+	ROUND(AVG(points), 2) AS AvgPointsPerRace,
+	SUM(points) as TotaPoints
 FROM BotHam
 GROUP BY code, year;
 
 -- BOT/HAM career: average points per race, podium (top 3) finishes, P1 (first place) finishes
 SELECT code,
-COUNT(year) as NumOfRaces,
-ROUND(AVG(points), 2) AS AvgPointsPerRace,
-SUM(CASE WHEN DriverStanding <= 3 THEN 1 ELSE 0 END) AS NumOfPodiums,
-SUM(CASE WHEN DriverStanding = 1 THEN 1 ELSE 0 END) AS NumOfFirstPlace,
-CONCAT(CAST(ROUND(100.0 * SUM(CASE WHEN DriverStanding <= 3 THEN 1 ELSE 0 END)/COUNT(DriverStanding), 2) AS float), '%') AS 'Podium%',
-CONCAT(CAST(ROUND(100.0 * SUM(CASE WHEN DriverStanding = 1 THEN 1 ELSE 0 END)/COUNT(DriverStanding), 2) AS float), '%') AS 'P1%'
+	COUNT(year) as NumOfRaces,
+	ROUND(AVG(points), 2) AS AvgPointsPerRace,
+	SUM(CASE WHEN DriverStanding <= 3 THEN 1 ELSE 0 END) AS NumOfPodiums,
+	SUM(CASE WHEN DriverStanding = 1 THEN 1 ELSE 0 END) AS NumOfFirstPlace,
+	CONCAT(CAST(ROUND(100.0 * SUM(CASE WHEN DriverStanding <= 3 THEN 1 ELSE 0 END)/COUNT(DriverStanding), 2) AS float), '%') AS 'Podium%',
+	CONCAT(CAST(ROUND(100.0 * SUM(CASE WHEN DriverStanding = 1 THEN 1 ELSE 0 END)/COUNT(DriverStanding), 2) AS float), '%') AS 'P1%'
 FROM BotHam
 GROUP BY code;
