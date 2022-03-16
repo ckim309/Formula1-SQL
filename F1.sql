@@ -59,11 +59,15 @@ SELECT date, name, code, DriverStanding, points,
 FROM HamVer 
 order by date, code;
 
--- Season 2021: win percentage
-select TOP 6 dri.code,
-	SUM(CASE WHEN res.position = 1 THEN 1 ELSE 0 END) AS TotalWins,
-	(CAST(ROUND(100.0 * SUM(CASE WHEN res.position = 1 THEN 1 ELSE 0 END)/
-		COUNT(CASE WHEN res.position = 1 THEN 1 ELSE 0 END), 2) AS float)) AS WinPercentage
+-- Season 2021: number of podiums and percentage of podiums
+select dri.code,
+	SUM(CASE WHEN res.position = 1 THEN 1 ELSE 0 END) AS FirstPlaceCount,
+	SUM(CASE WHEN res.position = 2 THEN 1 ELSE 0 END) AS SecondPlaceCount,
+	SUM(CASE WHEN res.position = 3 THEN 1 ELSE 0 END) AS ThirdPlaceCount,
+	SUM(CASE WHEN res.position <= 3 then 1 else 0 end) AS TotalPodiums,
+	SUM(CASE WHEN res.position <= 3 then res.points else 0 end) AS TotalPodiumPoints,
+	(CAST(ROUND(100.0 * SUM(CASE WHEN res.position <= 3 THEN 1 ELSE 0 END)/
+		COUNT(CASE WHEN res.position <= 3 THEN 1 ELSE 0 END), 2) AS float)) AS PodiumPercentage
 FROM F1..results$ res LEFT JOIN F1..races$ rac 
 		ON res.raceId = rac.raceId
 	LEFT JOIN F1..drivers$ dri 
@@ -71,10 +75,19 @@ FROM F1..results$ res LEFT JOIN F1..races$ rac
 	LEFT JOIN F1..status$ sta 
 		ON sta.statusId = res.statusId
 WHERE rac.year = 2021
+	AND (dri.code = 'HAM' OR dri.code = 'VER')
 GROUP BY dri.code
-HAVING sum(res.position) > 0
-ORDER BY TotalWins DESC;
+ORDER BY FirstPlaceCount DESC, SecondPlaceCount DESC, ThirdPlaceCount DESC;
 
+select *
+FROM F1..results$ res LEFT JOIN F1..races$ rac 
+		ON res.raceId = rac.raceId
+	LEFT JOIN F1..drivers$ dri 
+		ON dri.driverId = res.driverId
+	LEFT JOIN F1..status$ sta 
+		ON sta.statusId = res.statusId
+WHERE rac.year = 2021
+AND( res.driverId = 1 or res.driverId = 830)
 -- HAM/VER 2021: temp table starting positions, finishing positions, fastest lap time
 select dri.code, 
 	CAST (rac.date as date) AS date, 
